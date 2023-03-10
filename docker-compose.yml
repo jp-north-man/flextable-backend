@@ -1,0 +1,11 @@
+version: '3'
+services:
+  postgres: #host name
+    build: .
+    ports:
+      - "5432:5432"
+    environment: #お好きなように
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydb
+
