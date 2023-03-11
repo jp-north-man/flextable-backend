@@ -20,10 +20,24 @@ func ConnectDB() {
 	defer db.Close()
 
 	_, err = db.Exec(`
-		CREATE TABLE table (
-			id SERIAL PRIMARY KEY,
-		);
+		CREATE TABLE IF NOT EXISTS table_definitions (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            creator TEXT NOT NULL,
+            columns JSONB NOT NULL
+        )
 	`)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	_, err = db.Exec(`
+        CREATE TABLE IF NOT EXISTS data_tables (
+            id SERIAL PRIMARY KEY,
+            table_id INTEGER NOT NULL REFERENCES table_definitions(id),
+            data JSONB NOT NULL
+        )
+    `)
 	if err != nil {
 		fmt.Println(err)
 	}
