@@ -8,18 +8,23 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func ConnectDB() {
+func ConnectDB() *sql.DB {
 	db, err := sql.Open("postgres",
-		"host=localhost port=5432 user=user password=password dbname=mydb sslmode=disable") //今回は直接書きます。Please read from .env etc.
+		"host=localhost port=5432 user=user password=password dbname=mydb sslmode=disable") // 今回は直接書きます。Please read from .env etc.
 	if err != nil {
-		log.Println("sql.Open: ", err)
+		log.Fatal("sql.Open: ", err)
 	} else {
 		log.Println("sql.Open: ", "ok")
 	}
 
+	return db
+}
+
+func CreateDB() {
+	db := ConnectDB()
 	defer db.Close()
 
-	_, err = db.Exec(`
+	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS table_definitions (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
