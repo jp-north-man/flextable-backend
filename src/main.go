@@ -41,8 +41,12 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 		// 	return
 		// }
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Table created successfully"))
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Table created successfully",
+		})
+
 	} else {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
