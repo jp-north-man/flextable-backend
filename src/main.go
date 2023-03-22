@@ -52,20 +52,41 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateTable(tableName string, columns []Column) error {
+func CreateTable(tableName string, columns []Column) (int, error) {
 	db := models.ConnectDB()
 	defer db.Close()
 
 	columnsJSON, err := json.Marshal(columns)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	creator := "user" // 実際のユーザー名に置き換えてください。
-	_, err = db.Exec("INSERT INTO table_definitions (name, creator, columns) VALUES ($1, $2, $3)", tableName, creator, columnsJSON)
+	var tableID int
+	err = db.QueryRow("INSERT INTO table_definitions (name, creator, columns) VALUES ($1, $2, $3) RETURNING id", tableName, creator, columnsJSON).Scan(&tableID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	// columnsをもとに空のJSONオブジェクトを作成します。
+	initialData := make(map[string]interface{})
+	for _, column := range columns {
+		initialData[column.Name] = ""
+	}
+
+	// 初期データをJSON形式に変換します。
+	initialDataJSON, err := json.Marshal(initialData)
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO data_tables (table_id, data)
+		VALUES ($1, $2)
+	`, tableID, initialDataJSON)
+	if err != nil {
+		return 0, err
+	}
+
+	return tableID, nil
 }
