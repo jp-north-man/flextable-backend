@@ -8,6 +8,17 @@ import (
 	"example.com/packages/models"
 )
 
+type Cell struct {
+	ColumnNumber int         `json:"columnNumber"`
+	ColumnName   string      `json:"columnName"`
+	Value        interface{} `json:"value"`
+}
+
+type Row struct {
+	RowNumber int    `json:"rowNumber"`
+	Cells     []Cell `json:"cells"`
+}
+
 type Column struct {
 	ID    int    `json:"id"`
 	Name  string `json:"name"`
@@ -58,6 +69,23 @@ func CreateTable(tableName string, columns []Column) error {
 	creator := "user" // 実際のユーザー名に置き換えてください。
 	var tableID int
 	err = db.QueryRow("INSERT INTO table_definitions (name, creator, columns) VALUES ($1, $2, $3) RETURNING id", tableName, creator, columnsJSON).Scan(&tableID)
+	if err != nil {
+		return err
+	}
+
+	// 初期データを空の配列として作成します。
+	initialData := make([]Row, 0)
+
+	// 初期データをJSON形式に変換します。
+	initialDataJSON, err := json.Marshal(initialData)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO data_tables (table_id, data)
+		VALUES ($1, $2)
+		`, tableID, initialDataJSON)
 	if err != nil {
 		return err
 	}
