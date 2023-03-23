@@ -84,3 +84,80 @@ func CreateTable(tableName string, columns []Column) (int, error) {
 
 	return tableID, nil
 }
+
+type AddRowRequest struct {
+	TableID int `json:"table_id"`
+}
+
+func AddRowHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		var req AddRowRequest
+		// リクエストボディから AddRowRequest をデコードします。
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Println(req)
+
+		// AddRow 関数を呼び出して、新しい行をデータベースに追加します。
+		err = AddRow(req.TableID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// 成功メッセージを返します。
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Row added successfully",
+		})
+
+	} else {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// AddRow は、指定されたテーブルIDに新しい行を追加します。
+func AddRow(tableID int) error {
+	// データベースに接続します。
+	db := models.ConnectDB()
+	defer db.Close()
+
+	// 指定されたテーブルIDのカラム情報を取得します。
+	var columnsJSON string
+	err := db.QueryRow("SELECT columns FROM table_definitions WHERE id = $1", tableID).Scan(&columnsJSON)
+	if err != nil {
+		return err
+	}
+
+	// JSONをColumnのスライスにデコードします。
+	var columns []Column
+	err = json.Unmarshal([]byte(columnsJSON), &columns)
+	if err != nil {
+		return err
+	}
+
+	// 新しい行を作成します。
+	newRow := make(map[string]interface{})
+	for _, column := range columns {
+		newRow[column.Name] = ""
+	}
+
+	// 新しい行をJSONに変換します。
+	newRowJSON, err := json.Marshal(newRow)
+	if err != nil {
+		return err
+	}
+	// データベースに新しい行を追加します。
+	_, err = db.Exec(`
+		INSERT INTO data_tables (table_id, data)
+		VALUES ($1, $2)
+	`, tableID, newRowJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
