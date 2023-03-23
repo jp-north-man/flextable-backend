@@ -62,26 +62,6 @@ func CreateTable(tableName string, columns []Column) error {
 		return err
 	}
 
-	// columnsをもとに空のJSONオブジェクトを作成します。
-	initialData := make(map[string]interface{})
-	for _, column := range columns {
-		initialData[column.Name] = ""
-	}
-
-	// 初期データをJSON形式に変換します。
-	initialDataJSON, err := json.Marshal(initialData)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(`
-		INSERT INTO data_tables (table_id, data)
-		VALUES ($1, $2)
-	`, tableID, initialDataJSON)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
