@@ -29,11 +29,11 @@ func CreateHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Println(req)
-		// err = CreateTable(req.TableName, req.Columns) // modelsパッケージ内で実装されたCreateTable関数を呼び出す
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
+		err = CreateTable(req.TableName, req.Columns) // modelsパッケージ内で実装されたCreateTable関数を呼び出す
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -46,20 +46,20 @@ func CreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateTable(tableName string, columns []Column) (int, error) {
+func CreateTable(tableName string, columns []Column) error {
 	db := models.ConnectDB()
 	defer db.Close()
 
 	columnsJSON, err := json.Marshal(columns)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	creator := "user" // 実際のユーザー名に置き換えてください。
 	var tableID int
 	err = db.QueryRow("INSERT INTO table_definitions (name, creator, columns) VALUES ($1, $2, $3) RETURNING id", tableName, creator, columnsJSON).Scan(&tableID)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	// columnsをもとに空のJSONオブジェクトを作成します。
@@ -71,7 +71,7 @@ func CreateTable(tableName string, columns []Column) (int, error) {
 	// 初期データをJSON形式に変換します。
 	initialDataJSON, err := json.Marshal(initialData)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	_, err = db.Exec(`
@@ -79,10 +79,10 @@ func CreateTable(tableName string, columns []Column) (int, error) {
 		VALUES ($1, $2)
 	`, tableID, initialDataJSON)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return tableID, nil
+	return nil
 }
 
 type AddRowRequest struct {
