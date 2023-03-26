@@ -80,12 +80,24 @@ func DeleteAllData() error {
 
 	_, err := db.Exec("DELETE FROM test_data_tables")
 	if err != nil {
-		return fmt.Errorf("Failed to delete data from test_data_tables: %v", err)
+		return fmt.Errorf("failed to delete data from test_data_tables: %v", err)
 	}
 
 	_, err = db.Exec("DELETE FROM test_table_definitions")
 	if err != nil {
-		return fmt.Errorf("Failed to delete data from test_table_definitions: %v", err)
+		return fmt.Errorf("failed to delete data from test_table_definitions: %v", err)
+	}
+
+	// シーケンスリセット　→　test_data_tables
+	_, err = db.Exec("ALTER SEQUENCE test_data_tables_id_seq RESTART WITH 1")
+	if err != nil {
+		return fmt.Errorf("failed to reset sequence for test_data_tables: %v", err)
+	}
+
+	// シーケンスリセット　→　test_table_definitions
+	_, err = db.Exec("ALTER SEQUENCE test_table_definitions_id_seq RESTART WITH 1")
+	if err != nil {
+		return fmt.Errorf("failed to reset sequence for test_table_definitions: %v", err)
 	}
 
 	fmt.Println("Data deleted successfully from both tables")
