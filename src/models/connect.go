@@ -60,7 +60,7 @@ func CreateDB() {
 	}
 
 	_, err = db.Exec(`
-        CREATE TABLE IF NOT EXISTS data_tables (
+        CREATE TABLE IF NOT EXISTS test_data_tables (
             id SERIAL PRIMARY KEY,
             table_id INTEGER NOT NULL REFERENCES test_table_definitions(id),
             data JSONB NOT NULL
