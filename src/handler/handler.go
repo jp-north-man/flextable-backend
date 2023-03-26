@@ -68,7 +68,7 @@ func CreateTable(tableName string, columns []Column) error {
 
 	creator := "user" // 実際のユーザー名に置き換えてください。
 	var tableID int
-	err = db.QueryRow("INSERT INTO table_definitions (name, creator, columns) VALUES ($1, $2, $3) RETURNING id", tableName, creator, columnsJSON).Scan(&tableID)
+	err = db.QueryRow("INSERT INTO test_table_definitions (name, creator, columns) VALUES ($1, $2, $3) RETURNING id", tableName, creator, columnsJSON).Scan(&tableID)
 	if err != nil {
 		return err
 	}
@@ -83,11 +83,51 @@ func CreateTable(tableName string, columns []Column) error {
 	}
 
 	_, err = db.Exec(`
-		INSERT INTO data_tables (table_id, data)
+		INSERT INTO test_data_tables (table_id, data)
 		VALUES ($1, $2)
 		`, tableID, initialDataJSON)
 	if err != nil {
 		return err
+	}
+
+	// 新しく作成されたテーブルのデータを取得します。
+	rows, err := db.Query("SELECT * FROM test_table_definitions")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	// データをログに出力します。
+	for rows.Next() {
+		var id int
+		var name, creator, columns string
+
+		err := rows.Scan(&id, &name, &creator, &columns)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("ID: %d, Name: %s, Creator: %s, Columns: %s\n", id, name, creator, columns)
+	}
+
+	// test_data_tables からデータを取得します。
+	dataRows, err := db.Query("SELECT * FROM test_data_tables")
+	if err != nil {
+		return err
+	}
+	defer dataRows.Close()
+
+	// データをログに出力します。
+	for dataRows.Next() {
+		var id, table_id int
+		var data string
+
+		err := dataRows.Scan(&id, &table_id, &data)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("ID: %d, TableID: %d, Data: %s\n", id, table_id, data)
 	}
 
 	return nil
@@ -135,7 +175,7 @@ func AddRow(tableID int) error {
 
 	// 指定されたテーブルIDのカラム情報を取得します。
 	var columnsJSON string
-	err := db.QueryRow("SELECT columns FROM table_definitions WHERE id = $1", tableID).Scan(&columnsJSON)
+	err := db.QueryRow("SELECT columns FROM test_table_definitions WHERE id = $1", tableID).Scan(&columnsJSON)
 	if err != nil {
 		return err
 	}
@@ -160,7 +200,7 @@ func AddRow(tableID int) error {
 	}
 	// データベースに新しい行を追加します。
 	_, err = db.Exec(`
-		INSERT INTO data_tables (table_id, data)
+		INSERT INTO test_data_tables (table_id, data)
 		VALUES ($1, $2)
 	`, tableID, newRowJSON)
 	if err != nil {
