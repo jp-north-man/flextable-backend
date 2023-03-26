@@ -10,6 +10,10 @@ import (
 
 func main() {
 	models.CreateDB()
+	err := models.DeleteAllData()
+	if err != nil {
+		log.Fatal("Failed to delete all data: ", err)
+	}
 	http.HandleFunc("/create", handler.CreateHandler)
 	http.HandleFunc("/add_row", handler.AddRowHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
