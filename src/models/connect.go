@@ -73,3 +73,21 @@ func CreateDB() {
 	fmt.Println("Tables created successfully")
 
 }
+
+func DeleteAllData() error {
+	db := ConnectDB()
+	defer db.Close()
+
+	_, err := db.Exec("DELETE FROM test_data_tables")
+	if err != nil {
+		return fmt.Errorf("Failed to delete data from test_data_tables: %v", err)
+	}
+
+	_, err = db.Exec("DELETE FROM test_table_definitions")
+	if err != nil {
+		return fmt.Errorf("Failed to delete data from test_table_definitions: %v", err)
+	}
+
+	fmt.Println("Data deleted successfully from both tables")
+	return nil
+}
