@@ -39,7 +39,7 @@ func CreateHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		log.Println(req)
+		log.Print(req)
 		err = CreateTable(req.TableName, req.Columns) // modelsパッケージ内で実装されたCreateTable関数を呼び出す
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -63,6 +63,7 @@ func CreateTable(tableName string, columns []Column) error {
 
 	columnsJSON, err := json.Marshal(columns)
 	if err != nil {
+		log.Println("Error marshalling columns:", err)
 		return err
 	}
 
@@ -70,6 +71,7 @@ func CreateTable(tableName string, columns []Column) error {
 	var tableID int
 	err = db.QueryRow("INSERT INTO test_table_definitions (name, creator, columns) VALUES ($1, $2, $3) RETURNING id", tableName, creator, columnsJSON).Scan(&tableID)
 	if err != nil {
+		log.Println("INSERT INTO test_table_definitions (name, creator, columns) VALUES ($1, $2, $3) RETURNING id:", err)
 		return err
 	}
 
@@ -79,6 +81,7 @@ func CreateTable(tableName string, columns []Column) error {
 	// 初期データをJSON形式に変換します。
 	initialDataJSON, err := json.Marshal(initialData)
 	if err != nil {
+		log.Println("Error marshalling initialData:", err)
 		return err
 	}
 
@@ -87,12 +90,14 @@ func CreateTable(tableName string, columns []Column) error {
 		VALUES ($1, $2)
 		`, tableID, initialDataJSON)
 	if err != nil {
+		log.Println("INSERT INTO test_data_tables (table_id, data) VALUES ($1, $2):", err)
 		return err
 	}
 
 	// 新しく作成されたテーブルのデータを取得します。
 	rows, err := db.Query("SELECT * FROM test_table_definitions")
 	if err != nil {
+		log.Println("Error querying test_table_definitions:", err)
 		return err
 	}
 	defer rows.Close()
@@ -107,12 +112,13 @@ func CreateTable(tableName string, columns []Column) error {
 			return err
 		}
 
-		log.Printf("ID: %d, Name: %s, Creator: %s, Columns: %s\n", id, name, creator, columns)
+		log.Println("ID:", id, ", Name:", name, ", Creator:", creator, ", Columns:", columns)
 	}
 
 	// test_data_tables からデータを取得します。
 	dataRows, err := db.Query("SELECT * FROM test_data_tables")
 	if err != nil {
+		log.Println("Error querying test_data_tables:", err)
 		return err
 	}
 	defer dataRows.Close()
@@ -127,7 +133,7 @@ func CreateTable(tableName string, columns []Column) error {
 			return err
 		}
 
-		log.Printf("ID: %d, TableID: %d, Data: %s\n", id, table_id, data)
+		log.Println("ID:", id, ", TableID:", table_id, ", Data:", data)
 	}
 
 	return nil
