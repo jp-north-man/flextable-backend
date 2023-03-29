@@ -215,3 +215,56 @@ func AddRow(tableID int) error {
 
 	return nil
 }
+
+type GetFlexTablesResponse struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+func GetFlexTablesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		flexTables, err := GetFlexTables()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(flexTables)
+
+	} else {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func GetFlexTables() ([]GetFlexTablesResponse, error) {
+	db := models.ConnectDB()
+	defer db.Close()
+
+	rows, err := db.Query("SELECT id, name FROM test_table_definitions")
+	if err != nil {
+		log.Println("Error querying test_table_definitions:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	flexTables := make([]GetFlexTablesResponse, 0)
+
+	for rows.Next() {
+		var id int
+		var name string
+
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			return nil, err
+		}
+
+		flexTables = append(flexTables, GetFlexTablesResponse{
+			ID:   id,
+			Name: name,
+		})
+	}
+
+	return flexTables, nil
+}
