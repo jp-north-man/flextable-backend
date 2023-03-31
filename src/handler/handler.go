@@ -268,3 +268,76 @@ func GetFlexTables() ([]GetFlexTablesResponse, error) {
 
 	return flexTables, nil
 }
+
+type UpdateCellRequest struct {
+	TableID      int         `json:"table_id"`
+	RowNumber    int         `json:"row_number"`
+	ColumnNumber int         `json:"column_number"`
+	Value        interface{} `json:"value"`
+}
+
+func UpdateCellHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "PUT" {
+		var req UpdateCellRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		log.Println(req)
+
+		err = UpdateCell(req.TableID, req.RowNumber, req.ColumnNumber, req.Value)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"message": "Cell updated successfully",
+		})
+
+	} else {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func UpdateCell(tableID int, rowNumber int, columnNumber int, value interface{}) error {
+	db := models.ConnectDB()
+	defer db.Close()
+
+	var dataJSON string
+	err := db.QueryRow("SELECT data FROM test_data_tables WHERE table_id = $1", tableID).Scan(&dataJSON)
+	if err != nil {
+		log.Println("Error querying test_data_tables:", err)
+		return err
+	}
+
+	var rows []Row
+	err = json.Unmarshal([]byte(dataJSON), &rows)
+	if err != nil {
+		log.Println("Error unmarshalling rows:", err)
+		return err
+	}
+
+	rows[rowNumber].Cells[columnNumber].Value = value
+
+	updatedDataJSON, err := json.Marshal(rows)
+	if err != nil {
+		log.Println("Error marshalling updated data:", err)
+		return err
+	}
+
+	_, err = db.Exec(`
+		UPDATE test_data_tables
+		SET data = $1
+		WHERE table_id = $2
+	`, updatedDataJSON, tableID)
+	if err != nil {
+		log.Println("Error updating test_data_tables:", err)
+		return err
+	}
+
+	return nil
+}
