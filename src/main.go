@@ -18,5 +18,6 @@ func main() {
 	http.HandleFunc("/add_row", handler.AddRowHandler)
 	http.HandleFunc("/list", handler.GetFlexTablesHandler)
 	http.HandleFunc("/update-cell", handler.UpdateCellHandler)
+	http.HandleFunc("/table", handler.GetTableDataHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
