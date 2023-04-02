@@ -341,3 +341,72 @@ func UpdateCell(tableID int, rowNumber int, columnNumber int, value interface{})
 
 	return nil
 }
+
+type GetTableDataRequest struct {
+	TableID int `json:"table_id"`
+}
+
+type GetTableDataResponse struct {
+	TableName string   `json:"table_name"`
+	Columns   []Column `json:"columns"`
+	Data      []Row    `json:"data"`
+}
+
+func GetTableDataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		var req GetTableDataRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		tableData, err := GetTableData(req.TableID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(tableData)
+
+	} else {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func GetTableData(tableID int) (GetTableDataResponse, error) {
+	db := models.ConnectDB()
+	defer db.Close()
+
+	var tableName, columnsJSON string
+	err := db.QueryRow("SELECT name, columns FROM test_table_definitions WHERE id = $1", tableID).Scan(&tableName, &columnsJSON)
+	if err != nil {
+		return GetTableDataResponse{}, err
+	}
+
+	var columns []Column
+	err = json.Unmarshal([]byte(columnsJSON), &columns)
+	if err != nil {
+		return GetTableDataResponse{}, err
+	}
+
+	var dataJSON string
+	err = db.QueryRow("SELECT data FROM test_data_tables WHERE table_id = $1", tableID).Scan(&dataJSON)
+	if err != nil {
+		return GetTableDataResponse{}, err
+	}
+
+	var data []Row
+	err = json.Unmarshal([]byte(dataJSON), &data)
+	if err != nil {
+		return GetTableDataResponse{}, err
+	}
+
+	return GetTableDataResponse{
+		TableName: tableName,
+		Columns:   columns,
+		Data:      data,
+	}, nil
+}
