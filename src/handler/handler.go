@@ -343,7 +343,7 @@ func UpdateCell(tableID int, rowNumber int, columnNumber int, value interface{})
 }
 
 type GetTableDataRequest struct {
-	TableID int `json:"table_id"`
+	TableID int `json:"id"`
 }
 
 type GetTableDataResponse struct {
@@ -360,9 +360,11 @@ func GetTableDataHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		log.Println("table id", req.TableID)
 
 		tableData, err := GetTableData(req.TableID)
 		if err != nil {
+			log.Printf("Error decoding request body 2: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -383,24 +385,28 @@ func GetTableData(tableID int) (GetTableDataResponse, error) {
 	var tableName, columnsJSON string
 	err := db.QueryRow("SELECT name, columns FROM test_table_definitions WHERE id = $1", tableID).Scan(&tableName, &columnsJSON)
 	if err != nil {
+		log.Printf("Error decoding request body 3: %v", err)
 		return GetTableDataResponse{}, err
 	}
 
 	var columns []Column
 	err = json.Unmarshal([]byte(columnsJSON), &columns)
 	if err != nil {
+		log.Printf("Error decoding request body 4: %v", err)
 		return GetTableDataResponse{}, err
 	}
 
 	var dataJSON string
 	err = db.QueryRow("SELECT data FROM test_data_tables WHERE table_id = $1", tableID).Scan(&dataJSON)
 	if err != nil {
+		log.Printf("Error decoding request body 5: %v", err)
 		return GetTableDataResponse{}, err
 	}
 
 	var data []Row
 	err = json.Unmarshal([]byte(dataJSON), &data)
 	if err != nil {
+		log.Printf("Error decoding request body 6: %v", err)
 		return GetTableDataResponse{}, err
 	}
 
